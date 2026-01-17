@@ -19,3 +19,10 @@ pip install [requirement]
 # update requirements
 pip freeze >requirements.txt
 ```
+
+
+# running server
+```bash
+fastapi dev main.py
+```
+
