@@ -27,7 +27,7 @@ class AiService:
                     "content": [
                         {
                             "type": "text",
-                            "text": "Identify the sign language sign in this image. Respond with only the word/letter. If there is no sign, do not respond"
+                            "text": "Identify the sign language sign in this image. Respond with only the word/letter. If there is no sign, do not respond. There will likely be a person in the frame, ignore them and focus on their hands"
                         },
                         {
                             "type": "image_url",
