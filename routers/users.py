@@ -33,6 +33,26 @@ def create_user(
     session.refresh(new_user)
     return new_user
 
+@router.get("/me", response_model=User)
+def read_user_me(
+    session: SessionDep,
+    token_data: dict = Depends(get_current_user)
+) -> User:
+    """
+    Get the currently logged-in user's profile from the database.
+    """
+    cognito_id = UUID(token_data["sub"])
+    
+    user = session.get(User, cognito_id)
+    
+    if not user:
+        raise HTTPException(
+            status_code=404, 
+            detail="User profile not found in database. Please create a profile first."
+        )
+        
+    return user
+
 @router.get("/{user_id}")
 def read_user(user_id: int, session: SessionDep) -> User:
     user = session.get(User, user_id)
