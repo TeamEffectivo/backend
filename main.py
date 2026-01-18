@@ -1,5 +1,7 @@
 import base64
+import asyncio
 from fastapi import FastAPI, HTTPException, File, UploadFile, WebSocket, WebSocketDisconnect
+from fastapi.websockets import WebSocketState
 from AiService import AiService
 
 app = FastAPI()
@@ -17,28 +19,37 @@ async def extract_signs(file: UploadFile = File(...)):
 @app.websocket("/ws/sign-language")
 async def websocket_endpoint(websocket: WebSocket):
     await websocket.accept()
+    
+    async def run_analysis(image_bytes, frame_id):
+        try:
+            result = await ai_service.get_sign_prediction(image_bytes, "image/jpeg")
+            if websocket.client_state == WebSocketState.CONNECTED:
+                await websocket.send_json({**result, "frame_id": frame_id})
+            else:
+                print(f"Skipping frame {frame_id}: Connection closed while processing.")
+                
+        except Exception as e:
+            if websocket.client_state == WebSocketState.CONNECTED:
+                await websocket.send_json({"error": str(e), "frame_id": frame_id})
+            else:
+                print(f"Silent error for frame {frame_id}: {e}")
+
+    frame_counter = 0
     try:
         while True:
             data = await websocket.receive_json()
             base64_image = data.get("image")
             
-            if not base64_image:
-                await websocket.send_json({"error": "No image data received"})
-                continue
+            if base64_image:
+                if "," in base64_image:
+                    base64_image = base64_image.split(",")[1]
+                image_bytes = base64.b64decode(base64_image)
 
-            if "," in base64_image:
-                base64_image = base64_image.split(",")[1]
-            
-            image_bytes = base64.b64decode(base64_image)
-            
-            result = await ai_service.get_sign_prediction(image_bytes, "image/jpeg")
-            await websocket.send_json(result)
+                asyncio.create_task(run_analysis(image_bytes, frame_counter))
+                frame_counter += 1
 
     except WebSocketDisconnect:
-        print("Client disconnected from WebSocket")
-    except Exception as e:
-        print(f"WebSocket Error: {e}")
-        await websocket.send_json({"error": str(e)})
+        print("Disconnected")
 
 @app.get("/")
 async def root():
