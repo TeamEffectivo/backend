@@ -15,6 +15,8 @@ class User(SQLModel, table=True):
 class UserUpdate(BaseModel):
     score: int | None = None
     battery: int | None = None
+    name: str | None = None
+    age: int | None = None
 
 class User_Level(SQLModel, table = True):
     id: int | None = Field(default = None, primary_key = True)
