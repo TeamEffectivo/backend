@@ -5,7 +5,7 @@ from fastapi.websockets import WebSocketState
 from AiService import AiService
 from models import create_db_and_tables, create_default_users, SessionDep, User, select, Annotated, desc
 from auth_utils import get_current_user
-from routers import users
+from routers import users, user_levels
 
 app = FastAPI() 
 ai_service = AiService()
@@ -70,3 +70,4 @@ async def root():
     return {"message": "Server is running"}
 
 app.include_router(users.router)
+app.include_router(user_levels.router)

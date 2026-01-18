@@ -36,14 +36,14 @@ def update_user_me(
     return current_user
 
 @router.get("/{user_id}")
-def read_user(user_id: int, session: SessionDep) -> User:
+def read_user(user_id: UUID, session: SessionDep) -> User:
     user = session.get(User, user_id)
     if not user:
         raise HTTPException(status_code=404, detail = "User not found")
     return user
 
 @router.patch("/{user_id}")
-def update_user(user_id: int, user_data: User, session: SessionDep) -> User:
+def update_user(user_id: UUID, user_data: User, session: SessionDep) -> User:
     db_user = session.get(User, user_id)
 
     if not db_user:
@@ -61,7 +61,7 @@ def update_user(user_id: int, user_data: User, session: SessionDep) -> User:
 
 
 @router.delete("/{user_id}")
-def delete(user_id: int, session: SessionDep):
+def delete(user_id: UUID, session: SessionDep):
     user = session.get(User, user_id)
     if not user:
         raise HTTPException(status_code = 404, detail = "User not found")
