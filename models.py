@@ -3,7 +3,7 @@ import uuid
 from uuid import UUID
 from fastapi import Depends, FastAPI, HTTPException, Query
 from sqlmodel import Field, Session, SQLModel, create_engine, select, desc
-
+from pydantic import BaseModel
 
 class User(SQLModel, table=True):
     id: uuid.UUID = Field(primary_key=True) 
@@ -11,6 +11,10 @@ class User(SQLModel, table=True):
     age: int | None = Field(default=None, index=True)
     score: int = Field(default=0)
     battery: int = Field(default=100)
+
+class UserUpdate(BaseModel):
+    score: int | None = None
+    battery: int | None = None
 
 class User_Level(SQLModel, table = True):
     id: int | None = Field(default = None, primary_key = True)

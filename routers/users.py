@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException, Query, Depends
 from sqlmodel import Session
-from models import User, select, Annotated, desc, SessionDep
+from models import User, UserUpdate, select, Annotated, desc, SessionDep
 from uuid import UUID
 from auth_utils import get_current_user
 
@@ -52,6 +52,28 @@ def read_user_me(
         )
         
     return user
+
+@router.patch("/me", response_model=User)
+def update_user_me(
+    user_data: UserUpdate, 
+    session: SessionDep,
+    token_data: dict = Depends(get_current_user)
+) -> User:
+    cognito_id = UUID(token_data["sub"])
+    db_user = session.get(User, cognito_id)
+
+    if not db_user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    update_data = user_data.model_dump(exclude_unset=True)
+
+    for key, value in update_data.items():
+        setattr(db_user, key, value)
+
+    session.add(db_user)
+    session.commit()
+    session.refresh(db_user)
+    return db_user
 
 @router.get("/{user_id}")
 def read_user(user_id: int, session: SessionDep) -> User:
