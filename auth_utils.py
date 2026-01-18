@@ -1,9 +1,12 @@
+import uuid
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 import httpx
 from jose import jwt
+from sqlmodel import UUID
 from EnvConfig import EnvConfig
-
+from models import SessionDep
+from models import User 
 
 security = HTTPBearer()
 
@@ -39,3 +42,28 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
             detail=f"Could not validate credentials: {str(e)}",
             headers={"WWW-Authenticate": "Bearer"},
         )
+    
+
+async def get_current_db_user(
+    session: SessionDep, 
+    token_data: dict = Depends(get_current_user)
+):
+    sub_str = token_data.get("sub")
+    try:
+        cognito_id = uuid.UUID(str(sub_str))
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid User ID format")
+    user = session.get(User, cognito_id)
+    
+    if not user:
+        user = User(
+            id=cognito_id,
+            name=token_data.get("email", "New User"),
+            score=0,
+            battery=100
+        )
+        session.add(user)
+        session.commit()
+        session.refresh(user)
+        
+    return user

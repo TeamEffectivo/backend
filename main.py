@@ -1,12 +1,19 @@
 import base64
 import asyncio
-from fastapi import FastAPI, HTTPException, File, UploadFile, WebSocket, WebSocketDisconnect, Depends
+from fastapi import FastAPI, HTTPException, File, UploadFile, WebSocket, WebSocketDisconnect, Depends, Query
 from fastapi.websockets import WebSocketState
 from AiService import AiService
+from models import create_db_and_tables, create_default_users, SessionDep, User, select, Annotated, desc
 from auth_utils import get_current_user
+from routers import users, user_levels
 
-app = FastAPI()
+app = FastAPI() 
 ai_service = AiService()
+
+@app.on_event("startup")
+def on_startup():
+    create_db_and_tables()
+    create_default_users()
 
 @app.post("/extract-signs")
 async def extract_signs(
@@ -61,3 +68,6 @@ async def websocket_endpoint(websocket: WebSocket):
 @app.get("/")
 async def root():
     return {"message": "Server is running"}
+
+app.include_router(users.router)
+app.include_router(user_levels.router)

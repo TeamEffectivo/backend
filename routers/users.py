@@ -1,0 +1,79 @@
+from fastapi import APIRouter, HTTPException, Query, Depends
+from sqlmodel import Session
+from models import User, UserUpdate, select, Annotated, desc, SessionDep
+from uuid import UUID
+from auth_utils import get_current_user, get_current_db_user
+
+router = APIRouter(
+    prefix="/users",
+    tags=["users"]
+)
+
+@router.get("/me", response_model=User)
+def read_user_me(
+    current_user: User = Depends(get_current_db_user)
+) -> User:
+    """
+    Returns the logged-in user's profile.
+    Automatically creates a DB record if it's their first time logging in.
+    """
+    return current_user
+
+@router.patch("/me", response_model=User)
+def update_user_me(
+    user_data: UserUpdate, 
+    session: SessionDep,
+    current_user: User = Depends(get_current_db_user)
+) -> User:
+    update_data = user_data.model_dump(exclude_unset=True)
+
+    for key, value in update_data.items():
+        setattr(current_user, key, value)
+
+    session.add(current_user)
+    session.commit()
+    session.refresh(current_user)
+    return current_user
+
+@router.get("/{user_id}")
+def read_user(user_id: UUID, session: SessionDep) -> User:
+    user = session.get(User, user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail = "User not found")
+    return user
+
+@router.patch("/{user_id}")
+def update_user(user_id: UUID, user_data: User, session: SessionDep) -> User:
+    db_user = session.get(User, user_id)
+
+    if not db_user:
+        raise HTTPException(status_code = 404, detail = "User not found")
+    
+    extra_data = user_data.model_dump(exclude_unset = True)
+
+    for key, value in extra_data.items():
+        setattr(db_user, key, value)
+
+    session.add(db_user)
+    session.commit()
+    session.refresh(db_user)
+    return db_user
+
+
+@router.delete("/{user_id}")
+def delete(user_id: UUID, session: SessionDep):
+    user = session.get(User, user_id)
+    if not user:
+        raise HTTPException(status_code = 404, detail = "User not found")
+    session.delete(user)
+    session.commit()
+    return {"ok": True}
+
+@router.get("/")
+def read_users(
+    session: SessionDep,
+    offset: int = 0,
+    limit: Annotated[int, Query(le=100)] = 100,
+) -> list[User]:
+    users = session.exec(select(User).order_by(desc(User.score)).offset(offset).limit(limit)).all()
+    return users
