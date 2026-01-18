@@ -1,14 +1,21 @@
 import base64
 import asyncio
-from fastapi import FastAPI, HTTPException, File, UploadFile, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, HTTPException, File, UploadFile, WebSocket, WebSocketDisconnect, Depends
 from fastapi.websockets import WebSocketState
 from AiService import AiService
+from auth_utils import get_current_user
 
 app = FastAPI()
 ai_service = AiService()
 
 @app.post("/extract-signs")
-async def extract_signs(file: UploadFile = File(...)):
+async def extract_signs(
+    file: UploadFile = File(...), 
+    user: dict = Depends(get_current_user)
+):
+    user_identifier = user.get('email') or user.get('sub')
+    print(f"Request from: {user_identifier}")
+    
     try:
         image_bytes = await file.read()
         result = await ai_service.get_sign_prediction(image_bytes, file.content_type)
