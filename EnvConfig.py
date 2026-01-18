@@ -11,3 +11,5 @@ class EnvConfig:
     AWS_USER_POOL_ID=os.getenv("AWS_USER_POOL_ID", None)
     AWS_APP_CLIENT_ID=os.getenv("AWS_APP_CLIENT_ID")
     AWS_REGION=os.getenv("AWS_REGION")
+
+    FRONTEND_URL=os.getenv("FRONTEND_URL")

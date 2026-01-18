@@ -2,13 +2,27 @@ import base64
 import asyncio
 from fastapi import FastAPI, HTTPException, File, UploadFile, WebSocket, WebSocketDisconnect, Depends, Query
 from fastapi.websockets import WebSocketState
+from fastapi.middleware.cors import CORSMiddleware
 from AiService import AiService
 from models import create_db_and_tables, create_default_users, SessionDep, User, select, Annotated, desc
 from auth_utils import get_current_user
 from routers import users
+from EnvConfig import EnvConfig
 
 app = FastAPI() 
 ai_service = AiService()
+
+origins = [
+    EnvConfig.FRONTEND_URL
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True, 
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 @app.on_event("startup")
 def on_startup():
