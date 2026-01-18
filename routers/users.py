@@ -1,6 +1,8 @@
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Depends
 from sqlmodel import Session
 from models import User, select, Annotated, desc, SessionDep
+from uuid import UUID
+from auth_utils import get_current_user
 
 router = APIRouter(
     prefix="/users",
@@ -8,11 +10,28 @@ router = APIRouter(
 )
 
 @router.post("/")
-def create_user(user: User, session: SessionDep) -> User:
-    session.add(user)
+def create_user(
+    user_data: User, 
+    session: SessionDep,
+    token_data: dict = Depends(get_current_user)
+) -> User:
+    cognito_id = UUID(token_data["sub"])
+    existing_user = session.get(User, cognito_id)
+    if existing_user:
+        return existing_user
+    
+    new_user = User(
+        id=cognito_id,
+        name=user_data.name,
+        age=user_data.age,
+        score=0,
+        battery=100
+    )
+    
+    session.add(new_user)
     session.commit()
-    session.refresh(user)
-    return user
+    session.refresh(new_user)
+    return new_user
 
 @router.get("/{user_id}")
 def read_user(user_id: int, session: SessionDep) -> User:
