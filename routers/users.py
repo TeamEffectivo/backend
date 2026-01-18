@@ -1,18 +1,39 @@
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Depends
 from sqlmodel import Session
-from models import User, select, Annotated, desc, SessionDep
+from models import User, UserUpdate, select, Annotated, desc, SessionDep
+from uuid import UUID
+from auth_utils import get_current_user, get_current_db_user
 
 router = APIRouter(
     prefix="/users",
     tags=["users"]
 )
 
-@router.post("/")
-def create_user(user: User, session: SessionDep) -> User:
-    session.add(user)
+@router.get("/me", response_model=User)
+def read_user_me(
+    current_user: User = Depends(get_current_db_user)
+) -> User:
+    """
+    Returns the logged-in user's profile.
+    Automatically creates a DB record if it's their first time logging in.
+    """
+    return current_user
+
+@router.patch("/me", response_model=User)
+def update_user_me(
+    user_data: UserUpdate, 
+    session: SessionDep,
+    current_user: User = Depends(get_current_db_user)
+) -> User:
+    update_data = user_data.model_dump(exclude_unset=True)
+
+    for key, value in update_data.items():
+        setattr(current_user, key, value)
+
+    session.add(current_user)
     session.commit()
-    session.refresh(user)
-    return user
+    session.refresh(current_user)
+    return current_user
 
 @router.get("/{user_id}")
 def read_user(user_id: int, session: SessionDep) -> User:
